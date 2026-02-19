@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Test - Direct</title>
+    <style>
+        body { font-family: system-ui; max-width: 600px; margin: 50px auto; padding: 20px; }
+        .box { background: #f7fafc; padding: 20px; border-radius: 8px; margin: 20px 0; }
+        input { width: 100%; padding: 12px; margin: 10px 0; font-family: monospace; font-size: 12px; }
+        button { padding: 12px 24px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 16px; }
+        .qr-img { max-width: 280px; margin: 20px auto; display: block; border: 2px solid #e2e8f0; }
+    </style>
+</head>
+<body>
+    <h1>🧪 QR Code Test Page</h1>
+    
+    <div class="box">
+        <h3>Test Ticket: EVT-69815FBF3772B</h3>
+        <p><b>Ticket ID:</b> 181</p>
+        
+        <h4>QR Data:</h4>
+        <input type="text" id="qrData" value="TKT-181-158cf7be-00b9-11f1-85a8-00ffea9c309d-a616bf53414018ffc026a139be86d150c6cf70edffd3c5d0a14ece5ab688e53b" readonly onclick="this.select()">
+        
+        <button onclick="copyQr()">📋 Copy QR Data</button>
+        <button onclick="testVerify()" style="margin-left:8px;background:#10b981">✅ Test Verify</button>
+    </div>
+
+    <div class="box">
+        <h3>QR Code Image (External API):</h3>
+        <img class="qr-img" id="qrImage" src="" alt="QR Code">
+        <p style="text-align:center;color:#64748b;font-size:14px">Scan this with QR scanner app</p>
+    </div>
+
+    <div class="box">
+        <h3>📱 Testing Steps:</h3>
+        <ol style="line-height:1.8">
+            <li>Click "Copy QR Data" button above</li>
+            <li>Login as admin in another tab</li>
+            <li>Go to: <a href="/admin/qr/verify" target="_blank">/admin/qr/verify</a></li>
+            <li>Paste the QR data in the input field</li>
+            <li>Click "Verify"</li>
+            <li>Should show: ✅ Valid Ticket</li>
+        </ol>
+    </div>
+
+    <script>
+        // Generate QR image on load
+        const qrData = document.getElementById('qrData').value;
+        document.getElementById('qrImage').src = 'https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=' + encodeURIComponent(qrData);
+
+        function copyQr() {
+            const field = document.getElementById('qrData');
+            field.select();
+            document.execCommand('copy');
+            alert('✅ QR Data copied!\n\nNow:\n1. Open /admin/qr/verify\n2. Paste and click Verify');
+        }
+
+        function testVerify() {
+            const qr = document.getElementById('qrData').value;
+            window.open('/admin/qr/verify?qr_data=' + encodeURIComponent(qr), '_blank');
+        }
+    </script>
+</body>
+</html>
