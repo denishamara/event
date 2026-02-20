@@ -145,100 +145,110 @@ class AdminReportController extends BaseController
     }
 
     private function getTransactions($db, $limit, $offset, $search = null, $event = null, $method = null, $status = null, $dateFrom = null, $dateTo = null)
-    {
-        $transactionBuilder = $db->table('event_tickets t')
-            ->select('
-                p.method,
-                t.price as amount,
-                p.status,
-                p.created_at,
-                t.ticket_code,
-                e.title AS event_title,
-                e.id AS event_id,
-                "payment" as type
-            ')
-            ->join('payments p','p.id = t.payment_id')
-            ->join('events e','e.id = t.event_id')
-            ->where('t.status', 'paid');
+{
+    $transactionBuilder = $db->table('event_tickets t')
+        ->select('
+            p.method,
+            (t.price * t.qty) as amount,
+            t.qty,
+            p.status,
+            p.created_at,
+            t.ticket_code,
+            e.title AS event_title,
+            e.id AS event_id,
+            "payment" as type
+        ')
+        ->join('payments p','p.id = t.payment_id')
+        ->join('events e','e.id = t.event_id')
+        ->where('t.status', 'paid');
 
-        if ($search) {
-            $transactionBuilder->groupStart()
-                ->like('t.ticket_code', $search)
-                ->orLike('e.title', $search)
-                ->groupEnd();
-        }
-        if ($event) {
-            $transactionBuilder->where('e.id', $event);
-        }
-        if ($method) {
-            $transactionBuilder->where('p.method', $method);
-        }
-        if ($status) {
-            $transactionBuilder->where('p.status', $status);
-        }
-        if ($dateFrom) {
-            $transactionBuilder->where('DATE(p.created_at) >=', $dateFrom);
-        }
-        if ($dateTo) {
-            $transactionBuilder->where('DATE(p.created_at) <=', $dateTo);
-        }
-
-        $transactions = $transactionBuilder
-            ->orderBy('p.created_at','DESC')
-            ->get()
-            ->getResultArray();
-
-        // Get refunds
-        $refundBuilder = $db->table('refunds r')
-            ->select('
-                r.status,
-                r.created_at,
-                t.ticket_code,
-                t.price as amount,
-                e.title AS event_title,
-                e.id AS event_id,
-                r.reason,
-                "refund" as method,
-                "refund" as type
-            ')
-            ->join('event_tickets t','t.id = r.ticket_id')
-            ->join('events e','e.id = t.event_id');
-
-        if ($search) {
-            $refundBuilder->groupStart()
-                ->like('t.ticket_code', $search)
-                ->orLike('e.title', $search)
-                ->groupEnd();
-        }
-        if ($event) {
-            $refundBuilder->where('e.id', $event);
-        }
-        if ($dateFrom) {
-            $refundBuilder->where('DATE(r.created_at) >=', $dateFrom);
-        }
-        if ($dateTo) {
-            $refundBuilder->where('DATE(r.created_at) <=', $dateTo);
-        }
-
-        $refunds = $refundBuilder
-            ->orderBy('r.created_at','DESC')
-            ->get()
-            ->getResultArray();
-
-        // Make refund amounts negative
-        foreach ($refunds as &$refund) {
-            $refund['amount'] = -1 * $refund['amount'];
-        }
-
-        // Merge and sort
-        $allTransactions = array_merge($transactions, $refunds);
-        usort($allTransactions, function($a, $b) {
-            return strtotime($b['created_at']) - strtotime($a['created_at']);
-        });
-
-        // Return slice
-        return array_slice($allTransactions, $offset, $limit);
+    if ($search) {
+        $transactionBuilder->groupStart()
+            ->like('t.ticket_code', $search)
+            ->orLike('e.title', $search)
+            ->groupEnd();
     }
+
+    if ($event) {
+        $transactionBuilder->where('e.id', $event);
+    }
+
+    if ($method) {
+        $transactionBuilder->where('p.method', $method);
+    }
+
+    if ($status) {
+        $transactionBuilder->where('p.status', $status);
+    }
+
+    if ($dateFrom) {
+        $transactionBuilder->where('DATE(p.created_at) >=', $dateFrom);
+    }
+
+    if ($dateTo) {
+        $transactionBuilder->where('DATE(p.created_at) <=', $dateTo);
+    }
+
+    $transactions = $transactionBuilder
+        ->orderBy('p.created_at','DESC')
+        ->get()
+        ->getResultArray();
+
+
+    /* ================= REFUND ================= */
+
+    $refundBuilder = $db->table('refunds r')
+        ->select('
+            r.status,
+            r.created_at,
+            t.ticket_code,
+            (t.price * t.qty) as amount,
+            t.qty,
+            e.title AS event_title,
+            e.id AS event_id,
+            r.reason,
+            "refund" as method,
+            "refund" as type
+        ')
+        ->join('event_tickets t','t.id = r.ticket_id')
+        ->join('events e','e.id = t.event_id');
+
+    if ($search) {
+        $refundBuilder->groupStart()
+            ->like('t.ticket_code', $search)
+            ->orLike('e.title', $search)
+            ->groupEnd();
+    }
+
+    if ($event) {
+        $refundBuilder->where('e.id', $event);
+    }
+
+    if ($dateFrom) {
+        $refundBuilder->where('DATE(r.created_at) >=', $dateFrom);
+    }
+
+    if ($dateTo) {
+        $refundBuilder->where('DATE(r.created_at) <=', $dateTo);
+    }
+
+    $refunds = $refundBuilder
+        ->orderBy('r.created_at','DESC')
+        ->get()
+        ->getResultArray();
+
+    foreach ($refunds as &$refund) {
+        $refund['amount'] = -1 * $refund['amount'];
+    }
+
+    $allTransactions = array_merge($transactions, $refunds);
+
+    usort($allTransactions, function($a, $b) {
+        return strtotime($b['created_at']) - strtotime($a['created_at']);
+    });
+
+    return array_slice($allTransactions, $offset, $limit);
+}
 
     public function exportPdf()
     {

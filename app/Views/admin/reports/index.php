@@ -210,6 +210,7 @@
 <tr>
     <td><?= esc($t['ticket_code']) ?></td>
     <td><?= esc($t['event_title']) ?></td>
+
     <td>
         <?php if ($t['type'] === 'refund'): ?>
             <span style="color:#ef4444;font-weight:700;">REFUND</span>
@@ -217,6 +218,7 @@
             <span style="color:#10b981;font-weight:700;">PAYMENT</span>
         <?php endif; ?>
     </td>
+
     <td>
         <?php if ($t['type'] === 'refund'): ?>
             <span style="color:#94a3b8;">-</span>
@@ -224,13 +226,21 @@
             <?= strtoupper($t['method']) ?>
         <?php endif; ?>
     </td>
+
     <td>
         <?php if ($t['type'] === 'refund'): ?>
-            <span style="color:#ef4444;">- Rp <?= number_format($t['amount']) ?></span>
+            <span style="color:#ef4444;">
+                - Rp <?= number_format(abs($t['amount'])) ?>
+                (<?= $t['qty'] ?> tiket)
+            </span>
         <?php else: ?>
-            <span style="color:#10b981;">Rp <?= number_format($t['amount']) ?></span>
+            <span style="color:#10b981;">
+                Rp <?= number_format($t['amount']) ?>
+                (<?= $t['qty'] ?> tiket)
+            </span>
         <?php endif; ?>
     </td>
+
     <td>
         <?php 
         $statusColor = '';
@@ -242,8 +252,11 @@
             $statusColor = 'color:#ef4444;';
         }
         ?>
-        <span style="<?= $statusColor ?>font-weight:600;"><?= strtoupper($t['status']) ?></span>
+        <span style="<?= $statusColor ?>font-weight:600;">
+            <?= strtoupper($t['status']) ?>
+        </span>
     </td>
+
     <td><?= date('d M Y H:i', strtotime($t['created_at'])) ?></td>
 </tr>
 <?php endforeach; ?>
